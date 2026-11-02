@@ -25,7 +25,7 @@ resource "aws_iam_role" "github_actions" {
       Condition = {
         StringEquals = {
           "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
-          "token.actions.githubusercontent.com:sub" = "repo:mouslim21/url-shortner:ref:refs/heads/main"
+          "token.actions.githubusercontent.com:sub" = "repo:mouslim21@55384360/url-shortner@1442711965:ref:refs/heads/main"
         }
       }
     }]
