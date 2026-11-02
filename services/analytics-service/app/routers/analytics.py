@@ -1,3 +1,4 @@
+import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
@@ -18,7 +19,7 @@ class AnalyticsResponse(BaseModel):
 @router.post("/{code}/click", response_model=AnalyticsResponse)
 def record_click(code: str, repository: Repository) -> AnalyticsResponse:
     count = AnalyticsService(repository).increment(code)
-    return AnalyticsResponse(code=code, click_count=count)
+    return AnalyticsResponse(code=code, click_count=count + 1)
 
 
 @router.get("/{code}", response_model=AnalyticsResponse)
