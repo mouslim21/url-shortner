@@ -1,0 +1,17 @@
+# Manually install the official chart at version 3.6.2 (controller v3.6.2).
+clusterName: url-shortner-nonprod-eks
+region: us-east-1
+# Pass the existing Terraform vpc_id output with --set vpcId=... at install time.
+replicaCount: 2
+serviceAccount:
+  create: true
+  name: aws-load-balancer-controller
+watchNamespace: url-shortner
+ingressClass: alb
+createIngressClassResource: true
+enableServiceMutatorWebhook: false
+resources:
+  requests: {cpu: 100m, memory: 128Mi}
+  limits: {cpu: 500m, memory: 256Mi}
+env:
+  AWS_EC2_METADATA_DISABLED: "true"
