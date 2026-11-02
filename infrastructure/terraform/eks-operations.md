@@ -16,7 +16,7 @@ cp infrastructure/terraform/environments/nonprod/eks.tfvars.example \
 ```
 
 Review the ignored `eks.auto.tfvars`. The example contains the verified local
-principal `arn:aws:iam::292681319373:user/cloud_user`. Confirm this remains your
+principal `arn:aws:iam::957280466878:user/cloud_user`. Confirm this remains your
 intended administrator. For assumed-role credentials, resolve the stable IAM
 role ARN, including any role path; do not copy an STS session ARN into an access
 entry. GitHub's publishing role is explicitly rejected as the administrator.

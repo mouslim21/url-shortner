@@ -1,4 +1,4 @@
-eks_admin_principal_arn = "arn:aws:iam::292681319373:user/cloud_user"
+eks_admin_principal_arn = "arn:aws:iam::957280466878:user/REPLACE_WITH_YOUR_PROVISIONER"
 eks_kubernetes_version = "1.35"
 
 # Private-only API by default. Local kubectl needs VPC connectivity in this mode.

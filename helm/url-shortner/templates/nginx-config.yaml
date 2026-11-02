@@ -9,12 +9,13 @@ data:
   nginx.conf: |
     worker_processes auto;
     pid /tmp/nginx.pid;
-    error_log /dev/stderr notice;
+    error_log /dev/stderr crit;
     events { worker_connections 1024; }
     http {
       include /etc/nginx/mime.types;
       default_type application/octet-stream;
-      access_log /dev/stdout;
+      log_format safe_json escape=json '{"time":"$time_iso8601","method":"$request_method","path":"$uri","status":$status,"duration_seconds":$request_time}';
+      access_log /dev/stdout safe_json;
       client_body_temp_path /tmp/client_temp;
       proxy_temp_path /tmp/proxy_temp;
       fastcgi_temp_path /tmp/fastcgi_temp;

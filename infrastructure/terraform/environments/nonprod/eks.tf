@@ -30,6 +30,8 @@ variable "eks_node_instance_type" {
 module "eks" {
   source = "../../modules/eks"
 
+  aws_account_id = var.aws_account_id
+
   vpc_id                  = module.networking.vpc_id
   private_subnet_ids      = module.networking.private_subnet_ids
   kubernetes_version      = var.eks_kubernetes_version

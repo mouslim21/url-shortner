@@ -34,7 +34,10 @@ resource "aws_iam_role" "github_actions" {
 }
 
 resource "aws_iam_role_policy" "ecr_push" {
-  name   = "url-shortner-ecr-push"
-  role   = aws_iam_role.github_actions.id
-  policy = file("${path.module}/ecr-push-policy.json")
+  name = "url-shortner-ecr-push"
+  role = aws_iam_role.github_actions.id
+  policy = templatefile("${path.module}/ecr-push-policy.json.tftpl", {
+    account_id = var.aws_account_id
+    region     = var.aws_region
+  })
 }

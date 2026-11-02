@@ -1,5 +1,5 @@
 image:
-  registry: 292681319373.dkr.ecr.us-east-1.amazonaws.com
+  registry: 957280466878.dkr.ecr.us-east-1.amazonaws.com
   # Rendering placeholder only. Override with a shared full Git SHA to deploy.
   tag: test-sha
   pullPolicy: IfNotPresent
@@ -43,3 +43,7 @@ ingress:
   paths:
     - path: /
       pathType: Prefix
+autoscaling:
+  frontend: {enabled: false, minReplicas: 1, maxReplicas: 3, targetCPUUtilizationPercentage: 60}
+  url-service: {enabled: false, minReplicas: 1, maxReplicas: 3, targetCPUUtilizationPercentage: 60}
+  analytics-service: {enabled: false, minReplicas: 1, maxReplicas: 3, targetCPUUtilizationPercentage: 60}

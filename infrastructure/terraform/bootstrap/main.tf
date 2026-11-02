@@ -1,6 +1,7 @@
 # Bootstrap uses local state because the remote-state bucket does not exist yet.
 provider "aws" {
-  region = var.aws_region
+  region              = var.aws_region
+  allowed_account_ids = [var.aws_account_id]
 }
 
 resource "aws_s3_bucket" "terraform_state" {

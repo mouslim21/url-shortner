@@ -1,2 +1,2 @@
 aws_region        = "us-east-1"
-state_bucket_name = "url-shortner-tfstate-292681319373-us-east-1"
+state_bucket_name = "url-shortner-tfstate-957280466878-us-east-1"
