@@ -1,0 +1,6 @@
+apiVersion: v2
+name: url-shortner
+description: Frontend, URL Service and Analytics Service for the nonprod KATA.
+type: application
+version: 0.1.0
+appVersion: "1.0"

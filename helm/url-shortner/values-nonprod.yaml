@@ -1,0 +1,4 @@
+# Defaults already target the nonprod account. Set image.tag at deployment time.
+awsRegion: us-east-1
+publicBaseUrl: http://localhost:8080
+analyticsTimeoutSeconds: "0.3"
