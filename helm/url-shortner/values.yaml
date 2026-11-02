@@ -1,0 +1,38 @@
+image:
+  registry: 292681319373.dkr.ecr.us-east-1.amazonaws.com
+  # Rendering placeholder only. Override with a shared full Git SHA to deploy.
+  tag: test-sha
+  pullPolicy: IfNotPresent
+awsRegion: us-east-1
+publicBaseUrl: http://localhost:8080
+analyticsTimeoutSeconds: "0.3"
+frontend:
+  dnsResolver: kube-dns.kube-system.svc.cluster.local
+components:
+  frontend:
+    repository: url-shortner-frontend
+    replicas: 1
+    containerPort: 8080
+    servicePort: 80
+    runAsUser: 101
+    resources:
+      requests: {cpu: 50m, memory: 64Mi}
+      limits: {cpu: 250m, memory: 128Mi}
+  url-service:
+    repository: url-shortner-url-service
+    replicas: 1
+    containerPort: 8000
+    servicePort: 8000
+    runAsUser: 10001
+    resources:
+      requests: {cpu: 100m, memory: 128Mi}
+      limits: {cpu: 500m, memory: 256Mi}
+  analytics-service:
+    repository: url-shortner-analytics-service
+    replicas: 1
+    containerPort: 8000
+    servicePort: 8000
+    runAsUser: 10001
+    resources:
+      requests: {cpu: 100m, memory: 128Mi}
+      limits: {cpu: 500m, memory: 256Mi}
