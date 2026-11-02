@@ -2,3 +2,17 @@
 awsRegion: us-east-1
 publicBaseUrl: http://localhost:8080
 analyticsTimeoutSeconds: "0.3"
+ingress:
+  enabled: true
+  className: alb
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80}]'
+    alb.ingress.kubernetes.io/healthcheck-path: /health
+    alb.ingress.kubernetes.io/healthcheck-port: traffic-port
+    alb.ingress.kubernetes.io/success-codes: "200"
+    alb.ingress.kubernetes.io/tags: Project=url-shortner,Environment=nonprod
+  paths:
+    - path: /
+      pathType: Prefix

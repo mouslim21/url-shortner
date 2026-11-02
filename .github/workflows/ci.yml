@@ -175,3 +175,86 @@ jobs:
           ECR_REGISTRY: ${{ steps.ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
         run: python3 scripts/publish_images.py
+
+  deploy:
+    name: Deploy nonprod
+    needs: [publish]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'mouslim21/url-shortner'
+    # The EKS API is private. This trusted runner must have VPC connectivity.
+    runs-on: [self-hosted, linux, x64, nonprod-eks]
+    environment: nonprod
+    timeout-minutes: 30
+    concurrency:
+      group: deploy-url-shortner-nonprod
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      IMAGE_TAG: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Prepare isolated kubeconfig
+        run: echo "KUBECONFIG=$RUNNER_TEMP/url-shortner-$GITHUB_RUN_ID.kubeconfig" >> "$GITHUB_ENV"
+      - name: Check deployment role configuration
+        env:
+          AWS_DEPLOY_ROLE_ARN: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+        run: test -n "$AWS_DEPLOY_ROLE_ARN"
+      - name: Authenticate with deployment OIDC role
+        uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: us-east-1
+          audience: sts.amazonaws.com
+          allowed-account-ids: '292681319373'
+          role-session-name: github-deploy-${{ github.run_id }}
+          unset-current-credentials: true
+      - uses: azure/setup-helm@v5.0.1
+        with:
+          version: v3.22.1
+      - uses: azure/setup-kubectl@v5.2.0
+        with:
+          version: v1.35.0
+      - name: Configure Kubernetes access
+        run: |
+          aws eks update-kubeconfig --name url-shortner-nonprod-eks --region us-east-1
+          kubectl auth can-i patch deployments -n url-shortner | grep -x yes
+          if kubectl auth can-i patch deployments -n kube-system; then
+            echo "Deployment identity must not manage kube-system."
+            exit 1
+          fi
+      - name: Validate Helm chart
+        run: |
+          helm lint helm/url-shortner -f helm/url-shortner/values-nonprod.yaml --set-string image.tag="$IMAGE_TAG"
+          helm template url-shortner helm/url-shortner --namespace url-shortner -f helm/url-shortner/values-nonprod.yaml --set-string image.tag="$IMAGE_TAG" > "$RUNNER_TEMP/url-shortner-rendered.yaml"
+      - name: Deploy exact published commit
+        run: |
+          EXISTING_HOST=$(kubectl -n url-shortner get ingress url-shortner --ignore-not-found -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+          APP_BASE_URL="http://localhost:8080"
+          if [ -n "$EXISTING_HOST" ]; then APP_BASE_URL="http://$EXISTING_HOST"; fi
+          helm upgrade --install url-shortner helm/url-shortner \
+            --namespace url-shortner -f helm/url-shortner/values-nonprod.yaml \
+            --set-string image.tag="$IMAGE_TAG" --set-string publicBaseUrl="$APP_BASE_URL" \
+            --atomic --wait --timeout 10m --history-max 5
+          kubectl -n url-shortner wait --for=jsonpath='{.status.loadBalancer.ingress[0].hostname}' ingress/url-shortner --timeout=5m
+          ALB_HOST=$(kubectl -n url-shortner get ingress url-shortner -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+          # The hostname exists only after the first Ingress reconciliation.
+          # Update the backend's public URL without rebuilding or changing images.
+          if [ "$APP_BASE_URL" != "http://$ALB_HOST" ]; then
+            helm upgrade --install url-shortner helm/url-shortner \
+              --namespace url-shortner -f helm/url-shortner/values-nonprod.yaml \
+              --set-string image.tag="$IMAGE_TAG" --set-string publicBaseUrl="http://$ALB_HOST" \
+              --atomic --wait --timeout 5m --history-max 5
+          fi
+          for deployment in frontend url-service analytics-service; do
+            kubectl -n url-shortner rollout status "deployment/$deployment" --timeout=180s
+          done
+          kubectl -n url-shortner get deployments,services,ingress
+          echo "Application URL: http://$ALB_HOST"
+          echo "Deployed commit: $IMAGE_TAG"
+      - name: Remove temporary kubeconfig
+        if: always()
+        run: rm -f "$RUNNER_TEMP/url-shortner-$GITHUB_RUN_ID.kubeconfig"
