@@ -1,5 +1,3 @@
-import logging
-
 from app.repositories.dynamodb_repository import DynamoDBRepository
 
 
