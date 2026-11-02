@@ -2,6 +2,7 @@ from datetime import datetime
 from unittest.mock import Mock
 
 import boto3
+import httpx
 import pytest
 from app.main import app
 from app.repositories.dynamodb_repository import (
@@ -10,6 +11,13 @@ from app.repositories.dynamodb_repository import (
     RepositoryUnavailable,
     get_repository,
 )
+from app.services.analytics_client import (
+    AnalyticsClient,
+    AnalyticsUnavailable,
+    get_analytics_client,
+)
+from botocore import UNSIGNED
+from botocore.config import Config
 from botocore.exceptions import EndpointConnectionError
 from botocore.stub import Stubber
 from fastapi.testclient import TestClient
@@ -21,9 +29,15 @@ def repository():
 
 
 @pytest.fixture
-def client(repository, monkeypatch):
+def analytics():
+    return Mock(spec=AnalyticsClient)
+
+
+@pytest.fixture
+def client(repository, analytics, monkeypatch):
     monkeypatch.delenv("PUBLIC_BASE_URL", raising=False)
     app.dependency_overrides[get_repository] = lambda: repository
+    app.dependency_overrides[get_analytics_client] = lambda: analytics
     try:
         with TestClient(app) as test_client:
             yield test_client
@@ -129,12 +143,11 @@ def test_repository_failure_returns_safe_error(client, repository, operation):
 
 @pytest.fixture
 def dynamodb_client():
-    # Test-only placeholders prevent discovery; Stubber blocks real AWS calls.
+    # Unsigned stubbed requests need no AWS credentials or credential discovery.
     return boto3.client(
         "dynamodb",
         region_name="us-east-1",
-        aws_access_key_id="testing",
-        aws_secret_access_key="testing",
+        config=Config(signature_version=UNSIGNED),
     )
 
 
@@ -254,3 +267,131 @@ def test_client_creation_failure_returns_safe_error(monkeypatch):
         assert response.json() == {"detail": "URL storage is unavailable"}
     finally:
         get_repository.cache_clear()
+
+
+def test_redirect_records_click(client, repository, analytics):
+    repository.get.return_value = {"original_url": "https://example.com/"}
+    response = client.get("/r/abc1234", follow_redirects=False)
+    assert response.status_code == 302
+    analytics.record_click.assert_called_once_with("abc1234")
+
+
+def test_redirect_survives_analytics_failure(client, repository, analytics, caplog):
+    repository.get.return_value = {"original_url": "https://example.com/"}
+    analytics.record_click.side_effect = AnalyticsUnavailable("internal details")
+    response = client.get("/r/abc1234", follow_redirects=False)
+    assert response.status_code == 302
+    assert response.headers["location"] == "https://example.com/"
+    assert "Analytics click recording failed" in caplog.text
+    assert "internal details" not in response.text
+
+
+def test_unknown_code_does_not_call_analytics(client, repository, analytics):
+    repository.get.return_value = None
+    assert client.get("/r/unknown").status_code == 404
+    analytics.record_click.assert_not_called()
+
+
+def test_stats(client, repository, analytics):
+    repository.get.return_value = {"original_url": "https://example.com/"}
+    analytics.get_stats.return_value = {"code": "abc1234", "click_count": 5}
+    response = client.get("/api/urls/abc1234/stats")
+    assert response.status_code == 200
+    assert response.json() == {"code": "abc1234", "click_count": 5}
+    analytics.get_stats.assert_called_once_with("abc1234")
+
+
+def test_stats_unknown_code(client, repository, analytics):
+    repository.get.return_value = None
+    assert client.get("/api/urls/unknown/stats").status_code == 404
+    analytics.get_stats.assert_not_called()
+
+
+def test_stats_unavailable(client, repository, analytics):
+    repository.get.return_value = {"original_url": "https://example.com/"}
+    analytics.get_stats.side_effect = AnalyticsUnavailable("internal details")
+    response = client.get("/api/urls/abc1234/stats")
+    assert response.status_code == 503
+    assert response.json() == {"detail": "Analytics service is unavailable"}
+
+
+@pytest.mark.parametrize("failure", ["timeout", "connect", "http", "invalid_json"])
+@pytest.mark.parametrize("endpoint", ["/r/abc1234", "/api/urls/abc1234/stats"])
+def test_http_failures_at_client_boundary(
+    client, repository, endpoint, failure, caplog
+):
+    repository.get.return_value = {"original_url": "https://example.com/"}
+
+    def handler(request):
+        if failure == "timeout":
+            raise httpx.ReadTimeout("slow analytics", request=request)
+        if failure == "connect":
+            raise httpx.ConnectError("unavailable analytics", request=request)
+        if failure == "http":
+            return httpx.Response(500, text="internal analytics error")
+        return httpx.Response(200, text="not json")
+
+    analytics = AnalyticsClient(
+        "http://analytics", transport=httpx.MockTransport(handler)
+    )
+    app.dependency_overrides[get_analytics_client] = lambda: analytics
+    response = client.get(endpoint, follow_redirects=False)
+    assert response.status_code == (302 if endpoint.startswith("/r/") else 503)
+    if endpoint.startswith("/r/"):
+        assert "Analytics click recording failed" in caplog.text
+
+
+@pytest.mark.parametrize("operation", ["record_click", "get_stats"])
+def test_analytics_http_contract(operation):
+    requests = []
+
+    def handler(request):
+        requests.append(request)
+        return httpx.Response(200, json={"code": "abc1234", "click_count": 5})
+
+    analytics = AnalyticsClient(
+        "http://analytics/", timeout=0.15, transport=httpx.MockTransport(handler)
+    )
+    result = getattr(analytics, operation)("abc1234")
+    assert result.code == "abc1234"
+    assert result.click_count == 5
+    assert len(requests) == 1
+    request = requests[0]
+    suffix = "/click" if operation == "record_click" else ""
+    assert str(request.url) == f"http://analytics/api/analytics/abc1234{suffix}"
+    assert request.method == ("POST" if operation == "record_click" else "GET")
+    assert all(value == 0.15 for value in request.extensions["timeout"].values())
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {},
+        {"code": "wrong", "click_count": 5},
+        {"code": "abc1234", "click_count": -1},
+        {"code": "abc1234", "click_count": "not-an-integer"},
+    ],
+)
+def test_bad_analytics_payload_is_controlled(payload):
+    transport = httpx.MockTransport(lambda request: httpx.Response(200, json=payload))
+    with pytest.raises(AnalyticsUnavailable):
+        AnalyticsClient("http://analytics", transport=transport).get_stats("abc1234")
+
+
+def test_analytics_configuration(monkeypatch):
+    monkeypatch.delenv("ANALYTICS_SERVICE_URL", raising=False)
+    monkeypatch.delenv("ANALYTICS_TIMEOUT_SECONDS", raising=False)
+    analytics = get_analytics_client()
+    assert analytics.base_url == "http://localhost:8001"
+    assert analytics.timeout == 0.3
+    monkeypatch.setenv("ANALYTICS_SERVICE_URL", "http://analytics:8001/")
+    monkeypatch.setenv("ANALYTICS_TIMEOUT_SECONDS", "0.2")
+    analytics = get_analytics_client()
+    assert analytics.base_url == "http://analytics:8001"
+    assert analytics.timeout == 0.2
+
+
+@pytest.mark.parametrize("timeout", ["invalid", "0", "-1", "inf", "nan"])
+def test_invalid_timeout_uses_safe_default(monkeypatch, timeout):
+    monkeypatch.setenv("ANALYTICS_TIMEOUT_SECONDS", timeout)
+    assert get_analytics_client().timeout == 0.3
