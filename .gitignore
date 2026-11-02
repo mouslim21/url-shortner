@@ -1,0 +1,47 @@
+# Python environments and caches
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+
+# Local environment files
+.env
+.env.*
+!.env.example
+
+# Terraform local data and sensitive inputs
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.json
+*.tfplan
+*.plan
+tfplan
+crash.log
+crash.*.log
+
+# Local IDE settings
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Operating system files
+.DS_Store
+._*
+Thumbs.db
+Desktop.ini
+
+# Test coverage artifacts
+.coverage
+.coverage.*
+coverage.xml
+coverage.json
+htmlcov/
+.nyc_output/
+
