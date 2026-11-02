@@ -1,13 +1,34 @@
 """Publish scanned Docker archives, refusing to replace a different immutable tag."""
 
+import hashlib
 import json
 import os
 import re
 import subprocess
+import tarfile
 from pathlib import Path
 
 COMPONENTS = ("frontend", "url-service", "analytics-service")
 REGISTRY = "292681319373.dkr.ecr.us-east-1.amazonaws.com"
+
+
+def image_config_digest(archive_path: Path, reference: str) -> str:
+    # Docker's inspected ID may identify a manifest rather than its config blob.
+    # Use the saved config blob for a like-for-like comparison with ECR.
+    with tarfile.open(archive_path) as archive:
+        manifest_file = archive.extractfile("manifest.json")
+        if manifest_file is None:
+            raise ValueError("Saved image has no Docker archive manifest")
+        manifests = json.load(manifest_file)
+        matches = [
+            item for item in manifests if reference in (item.get("RepoTags") or [])
+        ]
+        if len(matches) != 1:
+            raise ValueError(f"Expected exactly one saved image for {reference}")
+        config_file = archive.extractfile(matches[0]["Config"])
+        if config_file is None:
+            raise ValueError("Saved image has no config blob")
+        return "sha256:" + hashlib.sha256(config_file.read()).hexdigest()
 
 
 def remote_image_id(repository: str, tag: str) -> str | None:
@@ -56,10 +77,11 @@ def publish_image(component: str, tag: str, artifact_root: Path) -> None:
     expected = (artifact / "image-id.txt").read_text().strip()
     if not re.fullmatch(r"sha256:[0-9a-f]{64}", expected):
         raise ValueError(f"Invalid saved image identity for {component}")
+    local_reference = f"url-shortner-{component}:{tag}"
+    expected_config = image_config_digest(artifact / "image.tar", local_reference)
     subprocess.run(
         ["docker", "load", "--input", str(artifact / "image.tar")], check=True
     )
-    local_reference = f"url-shortner-{component}:{tag}"
     actual = subprocess.check_output(
         ["docker", "image", "inspect", local_reference, "--format", "{{.Id}}"],
         text=True,
@@ -68,7 +90,7 @@ def publish_image(component: str, tag: str, artifact_root: Path) -> None:
         raise RuntimeError(f"Saved image identity mismatch for {component}")
     existing = remote_image_id(repository, tag)
     if existing is not None:
-        if existing != expected:
+        if existing != expected_config:
             raise RuntimeError(
                 f"Immutable tag {reference} already contains a different image"
             )
@@ -78,7 +100,7 @@ def publish_image(component: str, tag: str, artifact_root: Path) -> None:
         return
     subprocess.run(["docker", "tag", local_reference, reference], check=True)
     subprocess.run(["docker", "push", reference], check=True)
-    if remote_image_id(repository, tag) != expected:
+    if remote_image_id(repository, tag) != expected_config:
         raise RuntimeError(
             f"Published image identity verification failed for {reference}"
         )
