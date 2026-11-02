@@ -1,0 +1,34 @@
+name: AWS OIDC test
+
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  authenticate:
+    if: github.ref == 'refs/heads/main' && github.repository == 'mouslim21/url-shortner'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+      - name: Verify role configuration
+        env:
+          AWS_ROLE_ARN: ${{ vars.AWS_ROLE_ARN }}
+        run: |
+          if [ -z "$AWS_ROLE_ARN" ]; then
+            echo "Set the AWS_ROLE_ARN repository variable before running this workflow."
+            exit 1
+          fi
+      - name: Authenticate to AWS using OIDC
+        uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: us-east-1
+          audience: sts.amazonaws.com
+          allowed-account-ids: '292681319373'
+          role-session-name: github-oidc-${{ github.run_id }}
+      - name: Verify AWS identity
+        run: aws sts get-caller-identity
