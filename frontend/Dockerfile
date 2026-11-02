@@ -1,5 +1,7 @@
 FROM nginx:stable-alpine
 
+RUN apk upgrade --no-cache
+
 ENV URL_SERVICE_HOST=url-service \
     URL_SERVICE_PORT=8000 \
     DNS_RESOLVER=127.0.0.11 \
