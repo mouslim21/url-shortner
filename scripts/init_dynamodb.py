@@ -1,6 +1,5 @@
 """Create KATA tables in DynamoDB Local only; never use an AWS endpoint."""
 
-import logging
 import os
 import time
 from typing import Any
