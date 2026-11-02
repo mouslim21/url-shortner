@@ -1,0 +1,27 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "EcrRegistryAuthentication",
+      "Effect": "Allow",
+      "Action": "ecr:GetAuthorizationToken",
+      "Resource": "*"
+    },
+    {
+      "Sid": "PushApplicationImages",
+      "Effect": "Allow",
+      "Action": [
+        "ecr:BatchCheckLayerAvailability",
+        "ecr:InitiateLayerUpload",
+        "ecr:UploadLayerPart",
+        "ecr:CompleteLayerUpload",
+        "ecr:PutImage"
+      ],
+      "Resource": [
+        "arn:aws:ecr:us-east-1:292681319373:repository/url-shortner-frontend",
+        "arn:aws:ecr:us-east-1:292681319373:repository/url-shortner-url-service",
+        "arn:aws:ecr:us-east-1:292681319373:repository/url-shortner-analytics-service"
+      ]
+    }
+  ]
+}
