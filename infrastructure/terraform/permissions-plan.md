@@ -21,7 +21,7 @@ provider API calls before preparing each provisioning policy.
 ## ECR image publishing
 
 The reviewable policy is `modules/github-oidc/ecr-push-policy.json`.
-`ecr:GetAuthorizationToken` requires resource `*`. The other five actions target
+`ecr:GetAuthorizationToken` requires resource `*`. Repository-specific push and image-identity read actions target
 only these exact ARNs:
 
 - `arn:aws:ecr:us-east-1:292681319373:repository/url-shortner-frontend`
@@ -29,8 +29,8 @@ only these exact ARNs:
 - `arn:aws:ecr:us-east-1:292681319373:repository/url-shortner-analytics-service`
 
 No repository creation, deletion, policy administration, or image deletion is
-allowed. Image pulling and remote build-cache features may require additional
-read actions; add them only if the later workflow needs them. Repositories must
+allowed. `ecr:BatchGetImage` permits immutable-tag identity checks on reruns. Full image
+pulling and remote build-cache features may require additional read actions; add them only if the later workflow needs them. Repositories must
 exist before an image can be published. IAM token retrieval alone does not grant
 access to other repositories.
 
