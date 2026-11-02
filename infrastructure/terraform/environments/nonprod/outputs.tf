@@ -37,3 +37,43 @@ output "vpc_cidr_block" {
   description = "Nonprod VPC IPv4 CIDR."
   value       = module.networking.vpc_cidr_block
 }
+
+output "frontend_repository_url" {
+  description = "Private frontend repository URL."
+  value       = module.ecr.frontend_repository_url
+}
+
+output "url_service_repository_url" {
+  description = "Private URL Service repository URL."
+  value       = module.ecr.url_service_repository_url
+}
+
+output "analytics_service_repository_url" {
+  description = "Private Analytics Service repository URL."
+  value       = module.ecr.analytics_service_repository_url
+}
+
+output "repository_arns" {
+  description = "ECR repository ARNs by component."
+  value       = module.ecr.repository_arns
+}
+
+output "short_urls_table_name" {
+  description = "URLS_TABLE_NAME for the URL Service."
+  value       = module.dynamodb.short_urls_table_name
+}
+
+output "short_urls_table_arn" {
+  description = "URL table ARN for Pod Identity."
+  value       = module.dynamodb.short_urls_table_arn
+}
+
+output "analytics_table_name" {
+  description = "ANALYTICS_TABLE_NAME for Analytics Service."
+  value       = module.dynamodb.analytics_table_name
+}
+
+output "analytics_table_arn" {
+  description = "Analytics table ARN for Pod Identity."
+  value       = module.dynamodb.analytics_table_arn
+}
