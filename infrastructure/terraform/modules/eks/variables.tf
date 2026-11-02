@@ -30,8 +30,8 @@ variable "admin_principal_arn" {
 
   validation {
     condition = can(regex(
-      "^arn:aws:iam::292681319373:(user|role)/.+$", var.admin_principal_arn
-    )) && var.admin_principal_arn != "arn:aws:iam::292681319373:role/url-shortner-github-actions"
+      "^arn:aws:iam::${var.aws_account_id}:(user|role)/.+$", var.admin_principal_arn
+    )) && var.admin_principal_arn != "arn:aws:iam::${var.aws_account_id}:role/url-shortner-github-actions"
     error_message = "Provide a stable IAM user/role ARN in the sandbox, excluding the GitHub publishing role."
   }
 }
@@ -77,4 +77,10 @@ variable "environment" {
   description = "Environment resource tag."
   type        = string
   default     = "nonprod"
+}
+
+variable "aws_account_id" {
+  description = "Expected AWS account for IAM principal validation."
+  type        = string
+  default     = "957280466878"
 }

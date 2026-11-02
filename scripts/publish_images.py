@@ -9,7 +9,10 @@ import tarfile
 from pathlib import Path
 
 COMPONENTS = ("frontend", "url-service", "analytics-service")
-REGISTRY = "292681319373.dkr.ecr.us-east-1.amazonaws.com"
+REGISTRY = (
+    f"{os.getenv('AWS_ACCOUNT_ID', '957280466878')}.dkr.ecr."
+    f"{os.getenv('AWS_REGION', 'us-east-1')}.amazonaws.com"
+)
 
 
 def image_config_digest(archive_path: Path, reference: str) -> str:

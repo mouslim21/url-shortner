@@ -395,3 +395,14 @@ def test_analytics_configuration(monkeypatch):
 def test_invalid_timeout_uses_safe_default(monkeypatch, timeout):
     monkeypatch.setenv("ANALYTICS_TIMEOUT_SECONDS", timeout)
     assert get_analytics_client().timeout == 0.3
+
+
+def test_request_logs_exclude_sensitive_values(client, caplog):
+    response = client.get(
+        "/health?token=private-query-value",
+        headers={"Authorization": "Bearer private-token-value"},
+    )
+    assert response.status_code == 200
+    assert '"event": "http_request"' in caplog.text
+    assert "private-query-value" not in caplog.text
+    assert "private-token-value" not in caplog.text

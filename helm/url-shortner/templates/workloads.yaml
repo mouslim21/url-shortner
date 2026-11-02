@@ -34,7 +34,9 @@ metadata:
   labels:
     {{- include "url-shortner.labels" $ | nindent 4 }}
 spec:
+  {{- if not (index $.Values.autoscaling $name).enabled }}
   replicas: {{ $component.replicas }}
+  {{- end }}
   selector:
     matchLabels:
       app.kubernetes.io/instance: {{ $.Release.Name }}

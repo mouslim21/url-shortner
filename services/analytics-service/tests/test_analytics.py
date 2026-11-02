@@ -181,3 +181,14 @@ def test_initialization_failure(monkeypatch):
         assert response.json() == {"detail": "Analytics storage is unavailable"}
     finally:
         get_repository.cache_clear()
+
+
+def test_request_logs_exclude_sensitive_values(client, caplog):
+    response = client.get(
+        "/health?token=private-query-value",
+        headers={"Authorization": "Bearer private-token-value"},
+    )
+    assert response.status_code == 200
+    assert '"event": "http_request"' in caplog.text
+    assert "private-query-value" not in caplog.text
+    assert "private-token-value" not in caplog.text

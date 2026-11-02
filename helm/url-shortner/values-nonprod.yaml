@@ -16,3 +16,6 @@ ingress:
   paths:
     - path: /
       pathType: Prefix
+autoscaling:
+  url-service: {enabled: true}
+  analytics-service: {enabled: true}
