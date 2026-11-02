@@ -8,6 +8,7 @@ ENV URL_SERVICE_HOST=url-service \
     NGINX_ENVSUBST_FILTER="^(URL_SERVICE_HOST|URL_SERVICE_PORT|DNS_RESOLVER)$"
 
 COPY index.html styles.css app.js /usr/share/nginx/html/
+COPY logging.conf /etc/nginx/conf.d/00-logging.conf
 COPY nginx.conf /etc/nginx/templates/default.conf.template
 
 EXPOSE 80

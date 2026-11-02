@@ -3,6 +3,9 @@ name: AWS OIDC test
 on:
   workflow_dispatch:
 
+env:
+  AWS_ACCOUNT_ID: '957280466878'
+
 permissions:
   id-token: write
   contents: read
@@ -28,7 +31,7 @@ jobs:
           role-to-assume: ${{ vars.AWS_ROLE_ARN }}
           aws-region: us-east-1
           audience: sts.amazonaws.com
-          allowed-account-ids: '292681319373'
+          allowed-account-ids: ${{ env.AWS_ACCOUNT_ID }}
           role-session-name: github-oidc-${{ github.run_id }}
       - name: Verify AWS identity
         run: aws sts get-caller-identity
