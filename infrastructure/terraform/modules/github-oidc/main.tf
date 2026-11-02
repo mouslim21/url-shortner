@@ -31,6 +31,10 @@ resource "aws_iam_role" "github_actions" {
     }]
   })
 
-  # GetCallerIdentity requires no identity-policy permissions. Attach no policies
-  # until a later step requires access to specific AWS resources.
+}
+
+resource "aws_iam_role_policy" "ecr_push" {
+  name   = "url-shortner-ecr-push"
+  role   = aws_iam_role.github_actions.id
+  policy = file("${path.module}/ecr-push-policy.json")
 }
