@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Install Ruff
+        run: python -m pip install 'ruff>=0.9,<1.0'
+      - name: Validate Ruff configuration
+        run: ruff check --config pyproject.toml --show-settings > /dev/null
+      - name: Lint Python files
+        # Ruff checks smoke tests now and application code as it is added.
+        run: ruff check --config pyproject.toml .
+
+  tests:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Install Pytest
+        run: python -m pip install 'pytest>=8.3,<9.0'
+      - name: Test repository foundation
+        run: python -m pytest tests
+      - name: Run service tests when present
+        shell: bash
+        run: |
+          for service in services/url-service services/analytics-service; do
+            if find "$service/tests" -type f \( -name 'test_*.py' -o -name '*_test.py' \) -print -quit | grep -q .; then
+              if [ -f "$service/requirements-dev.txt" ]; then
+                python -m pip install -r "$service/requirements-dev.txt"
+              elif [ -f "$service/requirements.txt" ]; then
+                python -m pip install -r "$service/requirements.txt"
+              fi
+              (cd "$service" && python -m pytest tests)
+            else
+              echo "No tests yet in $service; repository smoke tests cover the foundation."
+            fi
+          done
