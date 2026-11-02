@@ -77,3 +77,43 @@ output "analytics_table_arn" {
   description = "Analytics table ARN for Pod Identity."
   value       = module.dynamodb.analytics_table_arn
 }
+
+output "cluster_name" {
+  description = "EKS cluster name."
+  value       = module.eks.cluster_name
+}
+
+output "cluster_endpoint" {
+  description = "Kubernetes API endpoint."
+  value       = module.eks.cluster_endpoint
+}
+
+output "cluster_certificate_authority_data" {
+  description = "Base64-encoded Kubernetes API CA certificate."
+  value       = module.eks.cluster_certificate_authority_data
+}
+
+output "node_group_name" {
+  description = "EKS managed node group name."
+  value       = module.eks.node_group_name
+}
+
+output "cluster_security_group_id" {
+  description = "EKS-managed cluster security group ID."
+  value       = module.eks.cluster_security_group_id
+}
+
+output "cluster_arn" {
+  description = "EKS cluster ARN."
+  value       = module.eks.cluster_arn
+}
+
+output "cluster_oidc_issuer_url" {
+  description = "Cluster OIDC issuer URL."
+  value       = module.eks.cluster_oidc_issuer_url
+}
+
+output "node_role_arn" {
+  description = "EKS node infrastructure IAM role ARN."
+  value       = module.eks.node_role_arn
+}

@@ -1,0 +1,9 @@
+eks_admin_principal_arn = "arn:aws:iam::292681319373:user/cloud_user"
+eks_kubernetes_version = "1.35"
+
+# Private-only API by default. Local kubectl needs VPC connectivity in this mode.
+eks_public_endpoint_enabled = false
+eks_trusted_public_cidrs    = []
+
+# For public local administration, enable the endpoint and supply your actual
+# current public IPv4 address as a /32 in eks_trusted_public_cidrs. Never use /0.
