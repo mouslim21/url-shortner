@@ -1,0 +1,13 @@
+# Only application code and runtime requirements belong in the build context.
+**
+!Dockerfile
+!requirements.txt
+!app/
+!app/**
+**/__pycache__/
+**/*.py[cod]
+**/.env
+**/.env.*
+**/.aws/
+**/*.pem
+**/*.key

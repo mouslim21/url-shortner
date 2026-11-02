@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Create short links and check their click counts.">
+  <title>URL Shortener</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <main class="container">
+    <header>
+      <p class="eyebrow">LESS LINK. MORE POSSIBILITY.</p>
+      <h1>URL Shortener<span aria-hidden="true">.</span></h1>
+      <p class="intro">Turn a long URL into a link that’s easy to share.</p>
+    </header>
+
+    <section class="card" aria-labelledby="create-title">
+      <h2 id="create-title">Make your next link shorter</h2>
+      <form id="shorten-form" novalidate>
+        <label for="original-url">Original URL</label>
+        <div class="input-row">
+          <input id="original-url" name="url" type="url" inputmode="url"
+            placeholder="https://example.com/your-long-link" required
+            autocomplete="url" aria-describedby="url-hint form-message">
+          <button id="shorten-button" type="submit">Shorten URL</button>
+        </div>
+        <p id="url-hint" class="hint">Use a full URL starting with https:// or http://.</p>
+        <p id="form-message" class="message" role="status" aria-live="polite"></p>
+      </form>
+    </section>
+
+    <section id="result" class="card result" aria-labelledby="result-title" hidden>
+      <p class="eyebrow">READY TO SHARE</p>
+      <h2 id="result-title">Your short link</h2>
+      <div class="result-row">
+        <a id="short-url" target="_blank" rel="noopener noreferrer"></a>
+        <button id="copy-button" type="button" class="secondary">Copy</button>
+      </div>
+      <p id="copy-message" class="message" role="status" aria-live="polite"></p>
+      <div class="statistics" aria-labelledby="stats-title">
+        <div>
+          <h3 id="stats-title">Link statistics</h3>
+          <p class="hint">Refresh after visiting your short link.</p>
+        </div>
+        <button id="refresh-button" type="button" class="secondary">Refresh stats</button>
+        <p class="count"><span id="click-count">—</span> <span>clicks</span></p>
+        <p id="stats-message" class="message" role="status" aria-live="polite"></p>
+      </div>
+    </section>
+    <footer>Shorten. Share. See where it goes.</footer>
+  </main>
+</body>
+</html>

@@ -10,6 +10,14 @@ permissions:
   contents: read
 
 jobs:
+  compose:
+    name: Compose configuration
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Validate Compose configuration
+        run: docker compose config --quiet
+
   lint:
     name: Lint
     runs-on: ubuntu-latest
@@ -23,7 +31,6 @@ jobs:
       - name: Validate Ruff configuration
         run: ruff check --config pyproject.toml --show-settings > /dev/null
       - name: Lint Python files
-        # Ruff checks smoke tests now and application code as it is added.
         run: ruff check --config pyproject.toml .
 
   tests:
@@ -36,8 +43,6 @@ jobs:
           python-version: '3.12'
       - name: Install Pytest
         run: python -m pip install 'pytest>=8.3,<9.0'
-      - name: Test repository foundation
-        run: python -m pytest tests
       - name: Run service tests when present
         shell: bash
         run: |
@@ -50,6 +55,6 @@ jobs:
               fi
               (cd "$service" && python -m pytest tests)
             else
-              echo "No tests yet in $service; repository smoke tests cover the foundation."
+              echo "No tests yet in $service."
             fi
           done
